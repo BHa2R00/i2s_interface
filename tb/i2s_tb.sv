@@ -107,7 +107,7 @@ initial begin
 end
 
 initial begin
-	$dumpfile("../work/i2s_tb.vcd");
+	$dumpfile("../work/i2s_tb.fst");
 	$dumpvars(0,i2s_tb);
 end
 
