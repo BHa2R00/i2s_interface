@@ -2,7 +2,7 @@ module i2s (
 	input master_enable, 
 	input sdin, 
 	output reg [31:0] dout_l, dout_r, 
-	output sdout, 
+	output reg sdout, 
 	input [31:0] din_l, din_r, 
 	input bclk_i, lrclk_i, 
 	output bclk_o, lrclk_o, 
@@ -82,31 +82,65 @@ always @(*) begin
 	case(cst)
 		idle_l: nst = lrclk_01 ? start_r : cst;
 		start_r: nst = bclk_10 ? channel_r : cst;
-		channel_r: nst = bclk_10 & (channel_cnt == 5'd31) ? idle_r : cst;
+		channel_r: nst = bclk_10 & (channel_cnt == 5'd0) ? idle_r : cst;
 		idle_r: nst = lrclk_10 ? start_l : cst;
 		start_l: nst = bclk_10 ? channel_l : cst;
-		channel_l: nst = bclk_10 & (channel_cnt == 5'd31) ? idle_l : cst;
+		channel_l: nst = bclk_10 & (channel_cnt == 5'd0) ? idle_l : cst;
 		default: nst = cst;
 	endcase
 end
 always @(negedge rstn or posedge clk) begin
-	if(!rstn) channel_cnt <= 5'd31;
+	if(!rstn) channel_cnt <= 5'd0;
 	else if(bclk_10) 
-		channel_cnt <= ((cst == channel_l) | (cst == channel_r)) ? 5'd1 + channel_cnt : 5'd0;
+		channel_cnt <= ((cst == channel_l) | (cst == channel_r)) ? channel_cnt - 5'd1 : 5'd31;
 end
-assign sdout = 
-	(cst == channel_l) ? din_l[channel_cnt] : 
-	(cst == channel_r) ? din_r[channel_cnt] :
-	1'b0;
+reg [31:0] bin_l, bin_r;
+always @(negedge rstn or posedge clk) begin
+	if(!rstn) begin
+		bin_l <= 32'd0;
+		bin_r <= 32'd0;
+	end
+	else begin
+		case(cst) 
+			idle_l: bin_l <= din_l;
+			idle_r: bin_r <= din_r;
+			default: {bin_l, bin_r} <= {bin_l, bin_r};
+		endcase
+	end
+end
+always @(negedge rstn or posedge clk) begin
+	if(!rstn) sdout <= 1'b0;
+	else begin
+		case(cst)
+			channel_l: sdout <= bin_l[channel_cnt];
+			channel_r: sdout <= bin_r[channel_cnt];
+			default: sdout <= sdout;
+		endcase
+	end
+end
+reg [31:0] bout_l, bout_r;
+always @(negedge rstn or posedge clk) begin
+	if(!rstn) begin
+		bout_l <= 32'd0;
+		bout_r <= 32'd0;
+	end
+	else begin
+		case(nst)
+			channel_l: bout_l[channel_cnt] <= sdin;
+			channel_r: bout_r[channel_cnt] <= sdin;
+			default: {bout_l, bout_r} <= {bout_l, bout_r};
+		endcase
+	end
+end
 always @(negedge rstn or posedge clk) begin
 	if(!rstn) begin
 		dout_l <= 32'd0;
 		dout_r <= 32'd0;
 	end
 	else begin
-		case(nst)
-			channel_l: dout_l[channel_cnt] <= sdin;
-			channel_r: dout_r[channel_cnt] <= sdin;
+		case(cst) 
+			idle_l: dout_l <= bout_l;
+			idle_r: dout_r <= bout_r;
 			default: {dout_l, dout_r} <= {dout_l, dout_r};
 		endcase
 	end
