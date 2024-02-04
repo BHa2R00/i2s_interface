@@ -12,7 +12,7 @@ reg [511:0] tb_msg;
 	
 	reg bclk, lrclk;
 
-	wire [4:0] align = 15;
+	wire [4:0] align = 1;
 
 	wire full_1;
 	reg push_1, pop_1;
