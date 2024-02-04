@@ -7,7 +7,7 @@ module i2s_mono(
 	input rx, 
 	output tx, 
 	input signed [15:0] tx_pcm, 
-	input [4:0] align, // left = 16, standard = 15, right: depends
+	input [4:0] align, // left = 0, standard = 1, right: depends
 	input sel_rx, 
 	input enable, 
 	input rstn, clk 
@@ -20,7 +20,7 @@ wire for_enable = bth < 16;
 wire for_end = bth < 0;
 assign tx = pcm[16];
 wire [16:0] ash_pcm = {pcm[15:0], rx};
-wire signed [5:0] bth0 = 31 - {1'b0, align};
+wire signed [5:0] bth0 = 16 + {1'b0, align};
 
 `ifndef GRAY
 	`define GRAY(X) (X^(X>>1))
